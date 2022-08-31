@@ -1,83 +1,131 @@
 # Витрина RFM
 
-## 1.1. Требования к целевой витрине.
 ## Задача — построить витрину для RFM-классификации:
-1. Присвойте каждому клиенту три значения — значение фактора Recency, значение фактора Frequency и значение фактора Monetary Value:
+
+## 1.1. Требования к целевой витрине.
+	Присвойте каждому клиенту три значения — значение фактора Recency, значение фактора Frequency и значение фактора Monetary Value:
 	- Фактор Recency измеряется по последнему заказу. Распределите клиентов по шкале от одного до пяти, где значение 1 получат те, кто либо вообще не делал заказов, либо делал их очень давно, а 5 — те, кто заказывал относительно недавно.
 	- Фактор Frequency оценивается по количеству заказов. Распределите клиентов по шкале от одного до пяти, где значение 1 получат клиенты с наименьшим количеством заказов, а 5 — с наибольшим.
 	- Фактор Monetary Value оценивается по потраченной сумме. Распределите клиентов по шкале от одного до пяти, где значение 1 получат клиенты с наименьшей суммой, а 5 — с наибольшей.
-2. Проверьте, что количество клиентов в каждом сегменте одинаково. Например, если в базе всего 100 клиентов, то 20 клиентов должны получить значение 1, ещё 20 — значение 2 и т. д.
-3. В базе две схемы: production и analysis. В схеме production содержатся оперативные таблицы. Витрина должна располагаться в той же базе в схеме analysis.
-4. Для анализа нужно отобрать только успешно выполненные заказы - заказ со статусом Closed.
-5. Витрина должна состоять из таких полей:
+
+**Необходимые проверки и условия:**
+- Проверьте, что количество клиентов в каждом сегменте одинаково. Например, если в базе всего 100 клиентов, то 20 клиентов должны получить значение 1, ещё 20 — значение 2 и т. д.
+- Для анализа нужно отобрать только успешно выполненные заказы - заказ со статусом Closed.
+- Просят при расчете витрины обращаться только к объектам из схемы analysis. Чтобы не дублировать данные (данные находятся в этой же базе), решаем создать view. Таким образом, View будут находиться в схеме analysis и вычитывать данные из схемы production. 
+
+**Где хранятся данные:** в схеме production содержатся оперативные таблицы.
+
+**Куда надо сохранить витрину:** витрина должна располагаться в той же базе в схеме analysis.
+
+**Стуктура витрины:** витрина должна называться dm_rfm_segments и состоять из таких полей:
 	- user_id
 	- recency (число от 1 до 5)
 	- frequency (число от 1 до 5)
 	- monetary_value (число от 1 до 5)
-6. Глубина - в витрине нужны данные с начала 2022 года.
-7. Назовите витрину dm_rfm_segments
-8. Обновления не нужны.
+**Глубина данных:** в витрине нужны данные с начала 2022 года.
+
+**Обновления не нужны.**
 
 
-## 1.2. Изучите структуру исходных данных.
+## 1.2. Структура исходных данных.
 
-Полключитесь к базе данных и изучите структуру таблиц.
+Данные будут браться из схемы production, следующих таблиц и соответствующих столбцов:
+- Таблица users. Используемые поля: id(тип int) - идентификатор пользователя.
+- Таблица orderstatuses. Используемые поля: id(тип int) - идентификатор статуса заказа, key(тип varchar(255)) - значение ключа статуса.
+- Таблица orders. Используемые поля: user_id(тип int) - идентификатор пользоавтеля, order_ts(тип timestamp) - дата и время заказа, payment(numeric(19,5)) - сумма оплаты по заказу.
 
-Если появились вопросы по устройству источника, задайте их в чате.
+## 1.3. Качество данных
 
-Зафиксируйте, какие поля вы будете использовать для расчета витрины.
+| Таблицы             | Объект                      | Инструмент      | Для чего используется |
+| ------------------- | --------------------------- | --------------- | --------------------- |
+| production.users | id int NOT NULL PRIMARY KEY | Первичный ключ  | Обеспечивает уникальность записей о пользователях |
+| production.orderstatuses | id int NOT NULL PRIMARY KEY | Первичный ключ  | Обеспечивает уникальность записей о пользователях |
+| production.orderstatuses | key varchar(255) NOT NULL | NOT NULL  | Обеспечивает отсутствие пустых значений поля ключа статуса заказа |
+| production.orders | id int NOT NULL PRIMARY KEY | Первичный ключ  | Обеспечивает уникальность записей о заказах |
+| production.orders | status varchar(255) NOT NULL | NOT NULL  | Обеспечивает отсутствие пустых значений поля ключа статуса заказа |
+| production.orders | user_id int NOT NULL | NOT NULL  | Обеспечивает отсутствие пустых значений поля идентификатора пользователя |
+| production.orders | order_ts timestamp NOT NULL | NOT NULL  | Обеспечивает отсутствие пустых значений поля даты заказа |
 
------------
+**Таблицы users и orderstatuses.**
 
-{Впишите сюда ваш ответ}
+Нареканий по качеству данных нет. 
 
+**Таблица orders.**
 
-## 1.3. Проанализируйте качество данных
+Нареканий по качеству имеющихся данных нет. Возможные источники появления проблем:
+ - отсутствие проверки поля payment на значение больше 0;
+ - отсутствие внешнего ключа, для поля  user_id.
 
-Изучите качество входных данных. Опишите, насколько качественные данные хранятся в источнике. Так же укажите, какие инструменты обеспечения качества данных были использованы в таблицах в схеме production.
+## 1.4. Подготовка витрины данных
 
------------
-
-{Впишите сюда ваш ответ}
-
-
-## 1.4. Подготовьте витрину данных
-
-Теперь, когда требования понятны, а исходные данные изучены, можно приступить к реализации.
-
-### 1.4.1. Сделайте VIEW для таблиц из базы production.**
-
-Вас просят при расчете витрины обращаться только к объектам из схемы analysis. Чтобы не дублировать данные (данные находятся в этой же базе), вы решаете сделать view. Таким образом, View будут находиться в схеме analysis и вычитывать данные из схемы production. 
-
-Напишите SQL-запросы для создания пяти VIEW (по одному на каждую таблицу) и выполните их. Для проверки предоставьте код создания VIEW.
-
-```SQL
---Впишите сюда ваш ответ
-
-
-```
-
-### 1.4.2. Напишите DDL-запрос для создания витрины.**
-
-Далее вам необходимо создать витрину. Напишите CREATE TABLE запрос и выполните его на предоставленной базе данных в схеме analysis.
+### 1.4.1. SQL-запросы для создания VIEW для таблиц из схемы production.** в схеме analysis.
 
 ```SQL
---Впишите сюда ваш ответ
-
-
+create or replace view analysis.orderitems 
+as select * from production.orderitems;
+create or replace view analysis.orderstatuses
+as select * from production.orderstatuses;
+create or replace view analysis.orderstatuslog
+as select * from production.orderstatuslog;
+create or replace view analysis.products
+as select * from production.products;
+create or replace view analysis.users
+as select * from production.users;
+create or replace view analysis.orders
+as select * from production.orders;
 ```
 
-### 1.4.3. Напишите SQL запрос для заполнения витрины
-
-Наконец, реализуйте расчет витрины на языке SQL и заполните таблицу, созданную в предыдущем пункте.
-
-Для решения предоставьте код запроса.
+### 1.4.2. DDL-запрос для создания витрины.
 
 ```SQL
---Впишите сюда ваш ответ
+create table analysis.dm_rfm_segments (
+	user_id int NOT NULL PRIMARY KEY,
+    recency int NOT NULL CHECK(recency >= 1 AND recency <= 5)
+	frequency int NOT NULL CHECK(frequency >= 1 AND frequency <= 5)
+	monetary_value int NOT NULL CHECK(monetary_value >= 1 AND monetary_value <= 5)
+);```
 
+### 1.4.3. SQL запрос для заполнения витрины
 
+```SQL
+insert into analysis.dm_rfm_segments 
+with o as (
+	select o.user_id, o.order_ts, o.payment
+	from analysis.orders o, analysis.orderstatuses os 
+	where os."key" = 'Closed' and o.status = os.id 
+),
+uo as (
+	select u.id, 
+		max(o.order_ts) as "date_last_order",
+		count(o.*) as "count_orders",
+		coalesce(sum(o.payment),0) as "sum_payment"
+	from analysis.users u
+	left join o on o.user_id = u.id 
+	where o.order_ts >= '01.01.2022'::timestamp
+	group by u.id
+	),
+frequency as
+	(select 
+		count_orders,
+		ntile(5) OVER( order by count_orders ) as "frequency"
+	from (select count_orders from uo group by count_orders) t ),
+monetary as
+	(select 
+		sum_payment,
+		ntile(5) OVER( order by sum_payment) as "monetary_value"
+	from (select sum_payment from uo group by sum_payment) t ),
+recency as
+	(select 
+		date_last_order,
+		ntile(5) OVER( ORDER BY t.date_last_order nulls first) as "recency"
+	from (select date_last_order from uo group by date_last_order) t )
+	
+SELECT uo.id as "user_id",   
+	recency.recency,
+	frequency.frequency,
+	monetary.monetary_value
+from uo
+join frequency on frequency.count_orders = uo.count_orders
+join recency on recency.date_last_order = uo.date_last_order
+join monetary on monetary.sum_payment = uo.sum_payment
 ```
-
-
-
