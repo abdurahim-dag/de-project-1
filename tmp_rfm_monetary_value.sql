@@ -5,13 +5,13 @@ with o as (
 	select o.user_id, o.order_ts, o.payment
 	from analysis.orders o, analysis.orderstatuses os 
 	where os."key" = 'Closed' and o.status = os.id 
+		and o.order_ts >= '01.01.2022'::timestamp	
 ),
 uo as (
 	select u.id, 
-		coalesce(sum(o.payment),0) as "sum_payment"
+		sum(coalesce(o.payment,0)) as "sum_payment"
 	from analysis.users u
 	left join o on o.user_id = u.id 
-	where o.order_ts >= '01.01.2022'::timestamp
 	group by u.id
 	),
 monetary as
